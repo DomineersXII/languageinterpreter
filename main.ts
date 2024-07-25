@@ -2,9 +2,9 @@ export {}
 
 const tocompile: string = await Deno.readTextFile("tocompile.txt")
 const memory: number[] = new Array(30000).fill(0)
+const loopStack: number[] = []
 
 let pointerLocation: number = 0
-let loopStart: number = 0
 let word = ""
 
 function createWord(letter: string) { //test function
@@ -30,18 +30,34 @@ function compileCharacter(char: string, position: number): number {
         pointerLocation = (pointerLocation + 1) % memory.length
     } else if (char === ".") {
         const loggedLetter = String.fromCharCode(memory[pointerLocation])
-        console.log(loggedLetter)
-
+        //console.log(loggedLetter)
         createWord(loggedLetter) //for easy readability at end. not really part of the compiler
+
     } else if (char === ",") {
         const inputtedNumber = prompt("Input a number:")
         memory[pointerLocation] = Number(inputtedNumber)%256
     } else if (char === "[") {
-        loopStart = position
+        if (memory[pointerLocation] === 0) {
+            let depthCounter = 1
+
+            while(depthCounter !== 0) {
+                position++
+
+                if (tocompile.charAt(position) === "[") {
+                    depthCounter++
+                } else if (tocompile.charAt(position) === "]") {
+                    depthCounter--
+                }
+            }
+        } else {
+            loopStack.push(position)
+        }
     } else if (char === "]") {
-        if (memory[pointerLocation] != 0) {
-            position = loopStart
-        } 
+        if (memory[pointerLocation] !== 0) {
+            position = loopStack[loopStack.length-1]
+        } else {
+            loopStack.pop()
+        }
     } else {
         throw new Error("Invalid character at " + position)
     }
@@ -52,7 +68,6 @@ function compileCharacter(char: string, position: number): number {
 
 for (let i = 0; i < tocompile.length; i++) {
     const currentChar = tocompile.charAt(i)
-
     i = compileCharacter(currentChar, i)
 }
 
